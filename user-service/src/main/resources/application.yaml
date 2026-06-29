@@ -1,0 +1,48 @@
+server:
+  port: 8084
+  forward-headers-strategy: framework
+
+spring:
+  application:
+    name: user-service
+  datasource:
+    url: ${USER_DB_URL:jdbc:postgresql://localhost:5432/ticketmaster_users}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  liquibase:
+    enabled: true
+    change-log: classpath:db.changelog/changelog-master.xml
+  kafka:
+    bootstrap-servers: ${KAFKA_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
+springdoc:
+  servers:
+    - url: http://localhost:8090
+      description: API Gateway
+  open-api:
+    servers:
+      - url: http://localhost:8090
+        description: API Gateway
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URL:http://localhost:8761/eureka/}
+  instance:
+    prefer-ip-address: true
+
+admin:
+  default:
+    email: ${ADMIN_EMAIL:admin@example.com}
+    password: ${ADMIN_PASSWORD:admin}
+
+security:
+  jwt:
+    secret: ${JWT_SECRET:k8H9oP2mX5vY8cR4zL1wQ7eT3nB6mU9k8H9oP2mX5vY8cR4zL1wQ7eT3nB6mU9x}

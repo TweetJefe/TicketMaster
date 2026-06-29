@@ -1,0 +1,86 @@
+server:
+  port: 8090
+
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      server:
+        webflux:
+          globalcors:
+            cors-configurations:
+              '[/**]':
+                allowedOrigins: "*"
+                allowedMethods: "*"
+                allowedHeaders: "*"
+          default-filters:
+            - RemoveRequestHeader=Origin
+            - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials, RETAIN_UNIQUE
+            - PreserveHostHeader
+          routes:
+            - id: user-service-route
+              uri: lb://user-service
+              predicates:
+                - Path=/api/v1/users/**, /api/v1/auth/**, /api/users/**, /api/auth/**
+              filters:
+                - RewritePath=/api/v1/(?<segment>.*), /api/$1
+            - id: event-service-route
+              uri: lb://event-service
+              predicates:
+                - Path=/api/v1/events/**, /api/events/**, /api/v1/halls/**, /api/halls/**, /api/v1/performers/**, /api/performers/**
+              filters:
+                - RewritePath=/api/v1/(?<segment>.*), /api/$1
+            - id: booking-service-route
+              uri: lb://booking-service
+              predicates:
+                - Path=/api/v1/bookings/**, /api/v1/carts/**, /api/bookings/**, /api/carts/**
+              filters:
+                - RewritePath=/api/v1/(?<segment>.*), /api/$1
+            - id: ticket-service-route
+              uri: lb://ticket-service
+              predicates:
+                - Path=/api/v1/tickets/**, /api/tickets/**
+              filters:
+                - RewritePath=/api/v1/(?<segment>.*), /api/$1
+            - id: user-swagger
+              uri: lb://user-service
+              predicates:
+                - Path=/user-service/v3/api-docs
+              filters:
+                - RewritePath=/user-service/v3/api-docs, /v3/api-docs
+            - id: booking-swagger
+              uri: lb://booking-service
+              predicates:
+                - Path=/booking-service/v3/api-docs
+              filters:
+                - RewritePath=/booking-service/v3/api-docs, /v3/api-docs
+            - id: event-swagger
+              uri: lb://event-service
+              predicates:
+                - Path=/event-service/v3/api-docs
+              filters:
+                - RewritePath=/event-service/v3/api-docs, /v3/api-docs
+            - id: ticket-swagger
+              uri: lb://ticket-service
+              predicates:
+                - Path=/ticket-service/v3/api-docs
+              filters:
+                - RewritePath=/ticket-service/v3/api-docs, /v3/api-docs
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URL:http://localhost:8761/eureka/}
+  instance:
+    prefer-ip-address: true
+
+jwt:
+  secret: ${JWT_SECRET:k8H9oP2mX5vY8cR4zL1wQ7eT3nB6mU9k8H9oP2mX5vY8cR4zL1wQ7eT3nB6mU9x}
+
+logging:
+  level:
+    org.springframework.cloud.gateway: TRACE
+    org.springframework.http.server.reactive: DEBUG
+    org.springframework.web.reactive: DEBUG
+    reactor.netty: DEBUG

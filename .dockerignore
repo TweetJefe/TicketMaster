@@ -1,0 +1,5 @@
+.git
+.idea
+.mvn
+**/src/main/java
+**/src/test

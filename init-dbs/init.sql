@@ -1,0 +1,4 @@
+CREATE DATABASE ticketmaster_users;
+CREATE DATABASE ticketmaster_bookings;
+CREATE DATABASE ticketmaster_events;
+CREATE DATABASE ticketmaster_tickets;

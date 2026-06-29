@@ -1,0 +1,223 @@
+version: '3.8'
+
+networks:
+  ticketmaster-network:
+    driver: bridge
+
+volumes:
+  pg_data:
+  kafka_data:
+
+services:
+  ticketmaster-db:
+    image: postgres:15-alpine
+    container_name: ticketmaster-db
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: ticketmaster_main
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ./init-dbs:/docker-entrypoint-initdb.d
+    networks:
+      - ticketmaster-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  ticketmaster-redis:
+    image: redis:7-alpine
+    container_name: ticketmaster-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    networks:
+      - ticketmaster-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  ticketmaster-kafka:
+    image: apache/kafka:latest
+    container_name: ticketmaster-kafka
+    restart: always
+    ports:
+      - "9092:9092"
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: INTERNAL://0.0.0.0:29092,EXTERNAL://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://ticketmaster-kafka:29092,EXTERNAL://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+    networks:
+      - ticketmaster-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  eureka-server:
+    build: ./eureka
+    container_name: eureka-server
+    restart: always
+    ports:
+      - "8761:8761"
+    networks:
+      - ticketmaster-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  api-gateway:
+    build: ./api-gateway
+    container_name: api-gateway
+    restart: always
+    ports:
+      - "8090:8090"
+    environment:
+      EUREKA_URL: http://eureka-server:8761/eureka/
+      JWT_SECRET: ${JWT_SECRET:-k8H9oP2mX5vY8cR4zL1wQ7eT3nB6mU9k8H9oP2mX5vY8cR4zL1wQ7eT3nB6mU9x}
+    depends_on:
+      - eureka-server
+    networks:
+      - ticketmaster-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  user-service:
+    build: ./user-service
+    container_name: user-service
+    restart: always
+    ports:
+      - "8084:8084"
+    environment:
+      USER_DB_URL: jdbc:postgresql://ticketmaster-db:5432/ticketmaster_users
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      EUREKA_URL: http://eureka-server:8761/eureka/
+      JWT_SECRET: ${JWT_SECRET:-k8H9oP2mX5vY8cR4zL1wQ7eT3nB6mU9k8H9oP2mX5vY8cR4zL1wQ7eT3nB6mU9x}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@ticketmaster.com}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin}
+      APP_CORS_ALLOWED_ORIGINS: http://localhost:3000,http://localhost:8080
+      KAFKA_SERVERS: ticketmaster-kafka:29092
+    depends_on:
+      - eureka-server
+      - ticketmaster-db
+    networks:
+      - ticketmaster-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  booking-service:
+    build: ./booking-service
+    container_name: booking-service
+    restart: always
+    ports:
+      - "8085:8085"
+    environment:
+      BOOKING_DB_URL: jdbc:postgresql://ticketmaster-db:5432/ticketmaster_bookings
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      REDIS_HOST: ticketmaster-redis
+      KAFKA_SERVERS: ticketmaster-kafka:29092
+      EUREKA_URL: http://eureka-server:8761/eureka/
+    depends_on:
+      - eureka-server
+      - ticketmaster-db
+      - ticketmaster-redis
+      - ticketmaster-kafka
+    networks:
+      - ticketmaster-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  event-service:
+    build: ./event
+    container_name: event-service
+    restart: always
+    ports:
+      - "8081:8081"
+    environment:
+      EVENT_DB_URL: jdbc:postgresql://ticketmaster-db:5432/ticketmaster_events
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      KAFKA_SERVERS: ticketmaster-kafka:29092
+      EUREKA_URL: http://eureka-server:8761/eureka/
+    depends_on:
+      - eureka-server
+      - ticketmaster-db
+      - ticketmaster-kafka
+    networks:
+      - ticketmaster-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  ticket-service:
+    build: ./ticket
+    container_name: ticket-service
+    restart: always
+    ports:
+      - "8082:8082"
+    environment:
+      TICKET_DB_URL: jdbc:postgresql://ticketmaster-db:5432/ticketmaster_tickets
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      KAFKA_SERVERS: ticketmaster-kafka:29092
+      EUREKA_URL: http://eureka-server:8761/eureka/
+    depends_on:
+      - eureka-server
+      - ticketmaster-db
+      - ticketmaster-kafka
+    networks:
+      - ticketmaster-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  swagger-ui:
+    image: swaggerapi/swagger-ui:latest
+    container_name: swagger-ui
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      URLS: '[ {"url": "http://localhost:8090/user-service/v3/api-docs", "name": "User Service"}, {"url": "http://localhost:8090/booking-service/v3/api-docs", "name": "Booking Service"}, {"url": "http://localhost:8090/event-service/v3/api-docs", "name": "Event Service"}, {"url": "http://localhost:8090/ticket-service/v3/api-docs", "name": "Ticket Service"} ]'
+    networks:
+      - ticketmaster-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
