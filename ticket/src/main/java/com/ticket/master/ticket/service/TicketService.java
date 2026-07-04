@@ -20,4 +20,12 @@ public interface TicketService {
     void markTicketsAsSold(List<UUID> uuids, UUID uuid);
 
     void unlockTicket(UUID id);
+
+    void deleteTicketsByEventId(UUID eventId);
+
+    void reserveTickets(com.ticket.master.common.kafka.ReserveTicketsMessage message);
+
+    void cancelReservation(com.ticket.master.common.kafka.CancelTicketsReservationMessage message);
+
+    void confirmTicketsSold(com.ticket.master.common.kafka.ConfirmTicketsSoldMessage message);
 }

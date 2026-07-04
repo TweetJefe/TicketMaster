@@ -8,6 +8,10 @@ import java.util.UUID;
 
 public interface OrderService {
     OrderDTO createOrder(OrderCreateRequest request);
+
     OrderDTO payOrder(UUID id);
+
     void cancelOrdersByEventId(UUID EventId);
+
+    void cancelOrder(UUID id, boolean releaseDatabaseReservation);
 }

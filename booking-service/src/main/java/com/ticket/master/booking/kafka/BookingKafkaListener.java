@@ -1,6 +1,8 @@
 package com.ticket.master.booking.kafka;
 
 import com.ticket.master.common.kafka.EventDeletedMessage;
+import com.ticket.master.common.kafka.TicketsReservationFailedMessage;
+import com.ticket.master.common.kafka.TicketsReservedMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -30,4 +32,20 @@ public class BookingKafkaListener {
         }
     }
 
+    @KafkaListener(topics = "tickets-reserved-topic", groupId = "booking-group")
+    public void handleTicketsReserved(TicketsReservedMessage message) {
+        log.info("Saga step succeeded: tickets successfully reserved in DB for order {}", message.orderId());
+    }
+
+
+    @KafkaListener(topics = "tickets-reservation-failed-topic", groupId = "booking-group")
+    public void handleTicketsReservationFailed(TicketsReservationFailedMessage message) {
+        log.warn("Saga step failed: tickets reservation failed for order {}. Reason: {}. Starting compensation...",
+                message.orderId(), message.reason());
+        try {
+            orderService.cancelOrder(message.orderId(), false);
+        } catch (Exception e) {
+            log.error("Error executing compensating actions for order {}: {}", message.orderId(), e.getMessage());
+        }
+    }
 }

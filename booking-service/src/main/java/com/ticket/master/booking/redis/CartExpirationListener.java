@@ -1,6 +1,7 @@
 package com.ticket.master.booking.redis;
 
 import com.ticket.master.booking.kafka.BookingKafkaProducer;
+import com.ticket.master.booking.service.OrderService;
 import com.ticket.master.common.kafka.CartExpiredMessage;
 import com.ticket.master.common.kafka.TicketUnlockMessage;
 import lombok.extern.slf4j.Slf4j;
@@ -24,7 +25,7 @@ public class CartExpirationListener extends KeyExpirationEventMessageListener {
     private final CartRepository cartRepository;
     private final TicketLockService lockService;
     private final RedisTemplate<String, Object> redisTemplate;
-    private final OrderRepository orderRepository;
+    private final OrderService orderService;
 
     public CartExpirationListener(
             RedisMessageListenerContainer listenerContainer,
@@ -32,14 +33,14 @@ public class CartExpirationListener extends KeyExpirationEventMessageListener {
             CartRepository cartRepository,
             TicketLockService lockService,
             RedisTemplate<String, Object> redisTemplate,
-            OrderRepository orderRepository
+            OrderService orderService
     ) {
         super(listenerContainer);
         this.kafkaProd = kafkaProd;
         this.cartRepository = cartRepository;
         this.lockService = lockService;
         this.redisTemplate = redisTemplate;
-        this.orderRepository = orderRepository;
+        this.orderService = orderService;
     }
 
     @Override
@@ -76,20 +77,7 @@ public class CartExpirationListener extends KeyExpirationEventMessageListener {
 
                 log.info("Payment window is up! Checking order ({}) for expiration...", orderId);
 
-                orderRepository.findById(orderId).ifPresent(order -> {
-                    if (order.getStatus() == OrderStatus.PENDING) {
-                        order.setStatus(OrderStatus.CANCELLED);
-                        orderRepository.save(order);
-
-                        if (order.getTicketIds() != null) {
-                            for (UUID ticketId : order.getTicketIds()) {
-                                lockService.unlockTicket(ticketId, order.getUserId());
-                                kafkaProd.sendTicketUnlockMessage(new TicketUnlockMessage(ticketId, order.getEventId()));
-                            }
-                        }
-                        log.info("Order {} was cancelled due to payment timeout. Released {} tickets.", orderId, order.getTicketIds() != null ? order.getTicketIds().size() : 0);
-                    }
-                });
+                    orderService.cancelOrder(orderId, true);
             } catch (Exception e) {
                 log.error("Error cleaning up expired order for key {}: {}", expiredKey, e.getMessage(), e);
             }
