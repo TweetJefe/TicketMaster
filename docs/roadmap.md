@@ -17,7 +17,7 @@ This document outlines the planned improvements and refactoring steps for the Ti
   * Move halls and seating configurations into a dedicated `Hall Service` with its own isolated database.
   * This isolation will allow the Hall Service to directly interact with frontend seating layouts and interactive schema managers.
 
-### 2. Implement Saga Pattern
+### 2. Implement Saga Pattern (DONE!)
 * **Objective:** Ensure eventual consistency across distributed databases during order checkout.
 * **Details:** 
   * Implement an orchestrator-based Saga pattern to manage the ticket booking flow.
@@ -41,7 +41,7 @@ Este documento detalla las mejoras y pasos de refactorización planeados para el
   * Mover las salas y las configuraciones de asientos a un `Hall Service` dedicado con su propia base de datos aislada.
   * Esta separación permitirá que el Hall Service interactúe directamente con mapas de asientos interactivos y esquemas de salas en el frontend.
 
-### 2. Implementar el Patrón Saga
+### 2. Implementar el Patrón Saga (LISTO!)
 * **Objetivo:** Garantizar la consistencia eventual en bases de datos distribuidas durante la reserva de entradas.
 * **Detalles:** 
   * Implementar un patrón Saga basado en un orquestador para gestionar el flujo de reserva de entradas.
@@ -65,7 +65,7 @@ Este documento detalla las mejoras y pasos de refactorización planeados para el
   * Перенести залы и настройки посадочных мест в выделенный сервис `Hall Service` с его собственной изолированной базой данных.
   * Это разделение позволит сервису залов напрямую взаимодействовать со схемами залов и интерактивным выбором мест на фронтенде.
 
-### 2. Внедрение паттерна Saga
+### 2. Внедрение паттерна Saga (DONE!)
 * **Цель:** Гарантировать согласованность данных в распределенных базах при оформлении и оплате билетов.
 * **Детали:** 
   * Реализовать оркестрируемый паттерн Сага (Saga) для управления процессом покупки билетов.
