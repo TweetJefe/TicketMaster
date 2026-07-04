@@ -1,12 +1,12 @@
 # TicketMaster Database Schema
 
-TicketMaster uses a **Database-per-Service** design where each microservice owns its database. All microservices use PostgreSQL.
+TicketMaster uses a **Schema-per-Service** database design where all microservices connect to a single database instance (`ticketmaster`) but operate in their own logically isolated schemas. All schemas are defined in PostgreSQL.
 
 ## Entity Relationship (ER) Diagram
 
 ```mermaid
 erDiagram
-    %% ticketmaster_users Database
+    %% users_schema
     USER {
         uuid id PK
         string email "UNIQUE, NOT NULL"
@@ -14,7 +14,7 @@ erDiagram
         enum role "ADMIN, CUSTOMER, ORGANIZATION"
     }
 
-    %% ticketmaster_events Database
+    %% events_schema
     HALL {
         uuid id PK
         string name "NOT NULL"
@@ -52,7 +52,7 @@ erDiagram
         uuid performer_id FK
     }
 
-    %% ticketmaster_tickets Database
+    %% tickets_schema
     TICKET {
         uuid id PK
         uuid event_id "FK (Logical reference to Event)"
@@ -65,7 +65,7 @@ erDiagram
         enum type "VIP, STANDARD, ECONOMY"
     }
 
-    %% ticketmaster_bookings Database
+    %% bookings_schema
     ORDER {
         uuid id PK
         uuid user_id "NOT NULL (Logical reference to User)"
@@ -80,13 +80,13 @@ erDiagram
         uuid ticket_id "FK (Logical reference to Ticket)"
     }
 
-    %% Relationships (inside event service database)
+    %% Relationships (inside event service schema)
     HALL ||--o{ EVENT : "hosts"
     EVENT ||--o{ EVENT_CATEGORY : "contains"
     EVENT }o--o{ EVENT_PERFORMERS : "has"
     PERFORMER }o--o{ EVENT_PERFORMERS : "performs in"
     
-    %% Relationships (inside booking service database)
+    %% Relationships (inside booking service schema)
     ORDER ||--o{ ORDER_TICKETS : "contains"
     
     %% Logical Cross-Service Relationships (dotted lines)
@@ -100,14 +100,16 @@ erDiagram
 
 ## Database Details
 
-### 1. Database `ticketmaster_users` (User Service)
+All data resides within a single PostgreSQL database named `ticketmaster`. Each microservice connects to this database and targets its own dedicated schema.
+
+### 1. Schema `users_schema` (User Service)
 * **Table `users`**:
   * `id`: Unique identifier (Primary Key).
   * `email`: User email address (used for credentials, unique index).
   * `password`: Encrypted password hash (BCrypt).
   * `role`: User role (`ADMIN`, `CUSTOMER`, `ORGANIZATION`).
 
-### 2. Database `ticketmaster_events` (Event Service)
+### 2. Schema `events_schema` (Event Service)
 * **Table `halls`**:
   * `id`: Unique venue identifier (Primary Key).
   * `name`: Venue name (e.g., "Madison Square Garden").
@@ -129,7 +131,7 @@ erDiagram
 * **Join Table `event_performers`**:
   * Many-to-many link between events and performers.
 
-### 3. Database `ticketmaster_tickets` (Ticket Service)
+### 3. Schema `tickets_schema` (Ticket Service)
 * **Table `tickets`**:
   * Details of individual tickets generated for purchase.
   * `event_id`: Logical link to the event.
@@ -138,7 +140,7 @@ erDiagram
   * `status`: Ticket availability status (`AVAILABLE`, `SOLD`).
   * `type`: Ticket category tier (`VIP`, `STANDARD`, `ECONOMY`).
 
-### 4. Database `ticketmaster_bookings` (Booking Service)
+### 4. Schema `bookings_schema` (Booking Service)
 * **Table `orders`**:
   * Order header details. Tracks checkout status (`PENDING`, `PAID`, `FAILED`, `CANCELED`), event ID, total amount, and creation time.
 * **Collection Table `order_tickets`**:

@@ -6,7 +6,7 @@ spring:
   application:
     name: event-service
   datasource:
-    url: ${EVENT_DB_URL:jdbc:postgresql://localhost:5432/ticketmaster_events}
+    url: ${EVENT_DB_URL:jdbc:postgresql://localhost:5432/ticketmaster?currentSchema=events_schema}
     username: ${DB_USER:postgres}
     password: ${DB_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
@@ -14,9 +14,14 @@ spring:
     show-sql: true
     hibernate:
       ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: events_schema
   liquibase:
     enabled: true
     change-log: classpath:db/changelog/changelog-master.xml
+    default-schema: events_schema
+    liquibase-schema: events_schema
   kafka:
     bootstrap-servers: ${KAFKA_SERVERS:localhost:9092}
     producer:
