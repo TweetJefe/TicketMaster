@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import com.ticket.master.booking.mapper.OrderMapper;
 import com.ticket.master.booking.model.Order;
 import com.ticket.master.booking.model.OrderStatus;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.ticket.master.booking.repository.OrderRepository;
@@ -19,8 +20,12 @@ import java.time.LocalDateTime;
 import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
+import com.ticket.master.common.kafka.ReserveTicketsMessage;
+import com.ticket.master.common.kafka.ConfirmTicketsSoldMessage;
+import com.ticket.master.common.kafka.CancelTicketsReservationMessage;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class OrderServiceImpl implements OrderService {
     private final OrderRepository repository;
@@ -47,6 +52,13 @@ public class OrderServiceImpl implements OrderService {
         redisTemplate.delete("cart:" + request.userId() + ":shadow");
 
         redisTemplate.opsForValue().set("order:" + savedOrder.getId() + ":shadow", "", Duration.ofMinutes(10));
+
+        kafkaProducer.sendReserveTicketMessage(new ReserveTicketsMessage(
+                savedOrder.getId(),
+                savedOrder.getEventId(),
+                savedOrder.getUserId(),
+                savedOrder.getTicketIds()
+        ));
 
         return mapper.toDto(savedOrder);
     }
@@ -76,7 +88,12 @@ public class OrderServiceImpl implements OrderService {
                 purchaseTickets
         );
 
-        kafkaProducer.sendOrderPaidMessage(message);
+        kafkaProducer.sendConfirmTicketsSoldMessage(new ConfirmTicketsSoldMessage(
+                savedOrder.getId(),
+                savedOrder.getUserId(),
+                savedOrder.getTicketIds()
+        ));
+
         return mapper.toDto(savedOrder);
     }
 
@@ -89,5 +106,32 @@ public class OrderServiceImpl implements OrderService {
             order.setStatus(OrderStatus.CANCELLED);
         }
         repository.saveAll(orders);
+    }
+
+    @Override
+    @Transactional
+    public void cancelOrder(UUID orderId, boolean releaseDatabaseReservation) {
+        Order order = repository.findById(orderId).orElse(null);
+
+        if (order != null && order.getStatus() == OrderStatus.PENDING){
+            order.setStatus(OrderStatus.CANCELLED);
+            repository.save(order);
+            redisTemplate.delete("order:" + orderId + ":shadow");
+
+            if (order.getTicketIds() != null){
+                for (UUID ticketId : order.getTicketIds()){
+                    lockService.unlockTicket(ticketId, order.getUserId());
+                }
+                if (releaseDatabaseReservation){
+                    kafkaProducer.sendCancelTicketsReservationMessage(
+                            new CancelTicketsReservationMessage(
+                                    order.getId(),
+                                    order.getTicketIds()
+                            )
+                    );
+                }
+            }
+            log.info("Order {} cancelled. releaseDatabaseReservation={}", orderId, releaseDatabaseReservation);
+        }
     }
 }

@@ -16,7 +16,7 @@ services:
     environment:
       POSTGRES_USER: ${DB_USER:-postgres}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
-      POSTGRES_DB: ticketmaster_main
+      POSTGRES_DB: ticketmaster
     ports:
       - "5432:5432"
     volumes:
@@ -112,7 +112,7 @@ services:
     ports:
       - "8084:8084"
     environment:
-      USER_DB_URL: jdbc:postgresql://ticketmaster-db:5432/ticketmaster_users
+      USER_DB_URL: jdbc:postgresql://ticketmaster-db:5432/ticketmaster?currentSchema=users_schema
       DB_USER: ${DB_USER:-postgres}
       DB_PASSWORD: ${DB_PASSWORD:-postgres}
       EUREKA_URL: http://eureka-server:8761/eureka/
@@ -139,7 +139,7 @@ services:
     ports:
       - "8085:8085"
     environment:
-      BOOKING_DB_URL: jdbc:postgresql://ticketmaster-db:5432/ticketmaster_bookings
+      BOOKING_DB_URL: jdbc:postgresql://ticketmaster-db:5432/ticketmaster?currentSchema=bookings_schema
       DB_USER: ${DB_USER:-postgres}
       DB_PASSWORD: ${DB_PASSWORD:-postgres}
       REDIS_HOST: ticketmaster-redis
@@ -165,7 +165,7 @@ services:
     ports:
       - "8081:8081"
     environment:
-      EVENT_DB_URL: jdbc:postgresql://ticketmaster-db:5432/ticketmaster_events
+      EVENT_DB_URL: jdbc:postgresql://ticketmaster-db:5432/ticketmaster?currentSchema=events_schema
       DB_USER: ${DB_USER:-postgres}
       DB_PASSWORD: ${DB_PASSWORD:-postgres}
       KAFKA_SERVERS: ticketmaster-kafka:29092
@@ -189,7 +189,7 @@ services:
     ports:
       - "8082:8082"
     environment:
-      TICKET_DB_URL: jdbc:postgresql://ticketmaster-db:5432/ticketmaster_tickets
+      TICKET_DB_URL: jdbc:postgresql://ticketmaster-db:5432/ticketmaster?currentSchema=tickets_schema
       DB_USER: ${DB_USER:-postgres}
       DB_PASSWORD: ${DB_PASSWORD:-postgres}
       KAFKA_SERVERS: ticketmaster-kafka:29092

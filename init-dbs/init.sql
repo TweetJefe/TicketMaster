@@ -1,4 +1,5 @@
-CREATE DATABASE ticketmaster_users;
-CREATE DATABASE ticketmaster_bookings;
-CREATE DATABASE ticketmaster_events;
-CREATE DATABASE ticketmaster_tickets;
+c ticketmaster;
+CREATE SCHEMA IF NOT EXISTS users_schema;
+CREATE SCHEMA IF NOT EXISTS events_schema;
+CREATE SCHEMA IF NOT EXISTS tickets_schema;
+CREATE SCHEMA IF NOT EXISTS bookings_schema;

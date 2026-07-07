@@ -6,7 +6,7 @@ spring:
   application:
     name: booking-service
   datasource:
-    url: ${BOOKING_DB_URL:jdbc:postgresql://localhost:5432/ticketmaster_bookings}
+    url: ${BOOKING_DB_URL:jdbc:postgresql://localhost:5432/ticketmaster?currentSchema=bookings_schema}
     username: ${DB_USER:postgres}
     password: ${DB_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
@@ -14,9 +14,14 @@ spring:
     show-sql: true
     hibernate:
       ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: bookings_schema
   liquibase:
     enabled: true
     change-log: classpath:db/changelog/changelog-master.xml
+    default-schema: bookings_schema
+    liquibase-schema: bookings_schema
   data:
     redis:
       host: ${REDIS_HOST:localhost}

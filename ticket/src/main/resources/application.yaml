@@ -6,16 +6,21 @@ spring:
   application:
     name: ticket-service
   datasource:
-    url: ${TICKET_DB_URL:jdbc:postgresql://localhost:5432/ticketmaster_tickets}
+    url: ${TICKET_DB_URL:jdbc:postgresql://localhost:5432/ticketmaster?currentSchema=tickets_schema}
     username: ${DB_USER:postgres}
     password: ${DB_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
       ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: tickets_schema
   liquibase:
     enabled: true
     change-log: classpath:db/changelog/changelog-master.xml
+    default-schema: tickets_schema
+    liquibase-schema: tickets_schema
   kafka:
     bootstrap-servers: ${KAFKA_SERVERS:localhost:9092}
     consumer:

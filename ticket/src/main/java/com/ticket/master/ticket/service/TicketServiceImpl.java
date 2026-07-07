@@ -1,5 +1,6 @@
 package com.ticket.master.ticket.service;
 
+import com.ticket.master.common.kafka.*;
 import com.ticket.master.ticket.dto.kafka.BuyTicketRequest;
 import com.ticket.master.ticket.dto.TicketDTO;
 import com.ticket.master.ticket.enums.Status;
@@ -8,12 +9,13 @@ import com.ticket.master.common.exception.NullableViolation;
 import com.ticket.master.common.exception.PostgresErrorCodes;
 import com.ticket.master.common.exception.ServerException;
 import com.ticket.master.common.exception.UniquenessViolation;
+import com.ticket.master.ticket.kafka.TicketKafkaProducer;
 import jakarta.persistence.EntityNotFoundException;
-import com.ticket.master.common.kafka.EventCreatedMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import com.ticket.master.ticket.mapper.TicketMapper;
 import com.ticket.master.ticket.model.Ticket;
+import org.apache.kafka.common.metrics.Stat;
 import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -32,6 +34,7 @@ import com.ticket.master.common.enums.TicketType;
 public class TicketServiceImpl implements TicketService{
     private final TicketRepository repository;
     private final TicketMapper mapper;
+    private final TicketKafkaProducer ticketKafkaProducer;
 
     @Override
     public void generateTicketsFromSchema(EventCreatedMessage message) {
@@ -98,7 +101,7 @@ public class TicketServiceImpl implements TicketService{
         for(var ticketId : uuids){
             Ticket ticket = repository.findById(ticketId)
                     .orElseThrow(() -> new EntityNotFoundException("Ticket not found"));
-            if(ticket.getStatus() != Status.AVAILABLE){
+            if(ticket.getStatus() == Status.SOLD){
                 throw new IllegalStateException("Those tickets are unavailable");
             }else{
                 ticket.setStatus(Status.SOLD);
@@ -121,5 +124,75 @@ public class TicketServiceImpl implements TicketService{
         }else{
             log.warn("Attempted to unlock non-existent ticket with ID: {}", id);
         }
+    }
+
+    @Override
+    @Transactional
+    public void deleteTicketsByEventId(UUID eventId) {
+        log.info("Deleting all tickets for event: {}", eventId);
+        repository.deleteByEventId(eventId);
+    }
+
+    @Override
+    public void reserveTickets(ReserveTicketsMessage message) {
+        log.info("Processing ticket reservation for order: {}", message.orderId());
+        List<Ticket> tickets = new ArrayList<>();
+        boolean rAnyUnavailable = false;
+
+        for (UUID ticketId : message.ticketIds()){
+            Ticket ticket = repository.findById(ticketId).orElse(null);
+            if (ticket == null || ticket.getStatus() != Status.AVAILABLE){
+                rAnyUnavailable = true;
+                break;
+            }
+            tickets.add(ticket);
+        }
+        if (rAnyUnavailable){
+            log.warn("Reservation failed for order {}: some tickets are unavailable", message.orderId());
+            ticketKafkaProducer.sendTicketsReservationFailedMessage(new TicketsReservationFailedMessage(
+                    message.orderId(),
+                    "Some tickets are already locked or sold"));
+            return;
+        }
+
+        for (Ticket ticket : tickets){
+            ticket.setStatus(Status.LOCKED);
+            saveTicket(ticket);
+        }
+        log.info("Tickets successfully locked for order {}", message.orderId());
+        ticketKafkaProducer.sendTicketsReservedMessage(
+                new TicketsReservedMessage(
+                        message.orderId(),
+                        message.ticketIds()
+                )
+        );
+    }
+
+    @Override
+    public void cancelReservation(CancelTicketsReservationMessage message) {
+        log.info("Canceling ticket reservation for order: {}", message.orderId());
+        for (UUID ticketId : message.ticketIds()){
+            Ticket ticket = repository.findById(ticketId).orElse(null);
+            if (ticket != null && ticket.getStatus() == Status.LOCKED){
+                ticket.setStatus(Status.AVAILABLE);
+                ticket.setUserId(null);
+                saveTicket(ticket);
+            }
+        }
+        log.info("Tickets unlocked for order {}", message.orderId());
+    }
+
+    @Override
+    public void confirmTicketsSold(ConfirmTicketsSoldMessage message) {
+        log.info("Confirming tickets sold for order: {}", message.orderId());
+        for (UUID ticketId : message.ticketIds()){
+            Ticket ticket = repository.findById(ticketId).orElse(null);
+            if (ticket != null){
+                ticket.setStatus(Status.SOLD);
+                ticket.setUserId(message.userId());
+                saveTicket(ticket);
+            }
+        }
+        log.info("Tickets status updated to SOLD for order {}", message.orderId());
     }
 }
