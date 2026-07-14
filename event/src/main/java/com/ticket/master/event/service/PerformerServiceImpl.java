@@ -69,7 +69,6 @@ public class PerformerServiceImpl implements PerformerService {
         for (Event event : performer.getEvents()) {
             event.getPerformers().remove(performer);
         }
-
         repository.delete(performer);
     }
 }
