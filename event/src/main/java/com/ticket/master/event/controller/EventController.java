@@ -1,6 +1,7 @@
 package com.ticket.master.event.controller;
 
 import com.ticket.master.event.dto.CreateEventDTO;
+import jakarta.validation.Valid;
 import com.ticket.master.event.dto.EventDTO;
 import com.ticket.master.event.dto.UpdateEventDTO;
 import lombok.RequiredArgsConstructor;
@@ -23,7 +24,7 @@ public class EventController {
     @PreAuthorize("hasRole('ORGANIZATION')")
     @PostMapping
     public ResponseEntity<CreateEventDTO> createEvent (
-            @RequestBody CreateEventDTO dto
+            @Valid @RequestBody CreateEventDTO dto
     ){
         service.createEvent(dto);
         return ResponseEntity.status(HttpStatus.CREATED).build();
@@ -33,7 +34,7 @@ public class EventController {
     @PatchMapping("/{id}")
     public ResponseEntity<UpdateEventDTO> updateEvent (
             @PathVariable UUID id,
-            @RequestBody UpdateEventDTO dto
+            @Valid @RequestBody UpdateEventDTO dto
     ){
         service.updateEvent(id, dto);
         return ResponseEntity.status(HttpStatus.OK).build();

@@ -1,6 +1,7 @@
 package com.ticket.master.ticket.controller;
 
 import com.ticket.master.ticket.dto.kafka.BuyTicketRequest;
+import jakarta.validation.Valid;
 import com.ticket.master.ticket.dto.CreateTicketDTO;
 import com.ticket.master.ticket.dto.TicketDTO;
 import lombok.RequiredArgsConstructor;
@@ -20,7 +21,7 @@ public class TicketController {
     @PostMapping("/{id}/buy")
     public ResponseEntity<TicketDTO> updateTicket(
             @PathVariable UUID id,
-            @RequestBody BuyTicketRequest dto
+            @Valid @RequestBody BuyTicketRequest dto
     ){
         TicketDTO boughtTicket = service.buyTicket(dto, id);
         return ResponseEntity.status(HttpStatus.OK).body(boughtTicket);
