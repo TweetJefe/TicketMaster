@@ -19,7 +19,7 @@ spring:
         default_schema: events_schema
   liquibase:
     enabled: true
-    change-log: classpath:db/changelog/changelog-master.xml
+    change-log: classpath:db/changelog/event/changelog-master.xml
     default-schema: events_schema
     liquibase-schema: events_schema
   kafka:
