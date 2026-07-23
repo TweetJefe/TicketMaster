@@ -23,21 +23,21 @@ public class EventController {
 
     @PreAuthorize("hasRole('ORGANIZATION')")
     @PostMapping
-    public ResponseEntity<CreateEventDTO> createEvent (
+    public ResponseEntity<EventDTO> createEvent (
             @Valid @RequestBody CreateEventDTO dto
     ){
-        service.createEvent(dto);
-        return ResponseEntity.status(HttpStatus.CREATED).build();
+        EventDTO createdEvent = service.createEvent(dto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(createdEvent);
     }
 
     @PreAuthorize("hasRole('ORGANIZATION')")
     @PatchMapping("/{id}")
-    public ResponseEntity<UpdateEventDTO> updateEvent (
+    public ResponseEntity<EventDTO> updateEvent (
             @PathVariable UUID id,
             @Valid @RequestBody UpdateEventDTO dto
     ){
-        service.updateEvent(id, dto);
-        return ResponseEntity.status(HttpStatus.OK).build();
+        EventDTO updatedEvent = service.updateEvent(id, dto);
+        return ResponseEntity.status(HttpStatus.OK).body(updatedEvent);
     }
 
     @PreAuthorize("hasRole('ORGANIZATION')")
