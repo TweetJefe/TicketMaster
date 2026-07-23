@@ -11,6 +11,7 @@ import com.ticket.master.event.service.HallService;
 
 import java.util.List;
 import java.util.UUID;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 @RestController
 @RequestMapping("/api/halls")
@@ -19,6 +20,7 @@ public class HallController {
 
     private final HallService service;
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public ResponseEntity<HallResponse> createHall(@Valid @RequestBody HallRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(service.createHall(request));
@@ -34,11 +36,13 @@ public class HallController {
         return ResponseEntity.ok(service.getAllHalls());
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}")
     public ResponseEntity<HallResponse> updateHall(@PathVariable UUID id, @Valid @RequestBody HallRequest request) {
         return ResponseEntity.ok(service.updateHall(id, request));
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteHall(@PathVariable UUID id) {
         service.deleteHall(id);

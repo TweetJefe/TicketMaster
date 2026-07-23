@@ -11,6 +11,7 @@ import com.ticket.master.event.service.PerformerService;
 
 import java.util.List;
 import java.util.UUID;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 @RestController
 @RequestMapping("/api/performers")
@@ -19,6 +20,7 @@ public class PerformerController {
 
     private final PerformerService service;
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public ResponseEntity<PerformerResponse> createPerformer(@Valid @RequestBody PerformerRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(service.createPerformer(request));
@@ -34,11 +36,13 @@ public class PerformerController {
         return ResponseEntity.ok(service.getAllPerformers());
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}")
     public ResponseEntity<PerformerResponse> updatePerformer(@PathVariable UUID id, @Valid @RequestBody PerformerRequest request) {
         return ResponseEntity.ok(service.updatePerformer(id, request));
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletePerformer(@PathVariable UUID id) {
         service.deletePerformer(id);
