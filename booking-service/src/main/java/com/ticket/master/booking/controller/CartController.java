@@ -1,6 +1,7 @@
 package com.ticket.master.booking.controller;
 
 import lombok.RequiredArgsConstructor;
+import jakarta.validation.Valid;
 import com.ticket.master.booking.model.CartItem;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -19,7 +20,7 @@ public class CartController {
     @PostMapping("/{userId}/add")
     public ResponseEntity<Void> addItemsToCart(
             @PathVariable UUID userId,
-            @RequestBody List<CartItem> items) {
+            @Valid @RequestBody List<CartItem> items) {
 
         cartService.addItemToCart(userId, items);
         return ResponseEntity.ok().build();

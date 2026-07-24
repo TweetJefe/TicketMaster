@@ -113,6 +113,9 @@ public class EventServiceImpl implements EventService{
 
         if (dto.performerIds() != null && !dto.performerIds().isEmpty()) {
             Set<Performer> performers = new HashSet<>(performerRepository.findAllById(dto.performerIds()));
+            if (performers.isEmpty()) {
+                throw new EntityNotFoundException("No performers found for given IDs");
+            }
             event.setPerformers(performers);
         }
 

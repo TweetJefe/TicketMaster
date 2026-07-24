@@ -1,4 +1,4 @@
-package com.ticket.master.event;
+package com.ticket.master.ticket;
 
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
@@ -20,7 +20,7 @@ public class TestcontainersConfiguration {
     @ServiceConnection
     PostgreSQLContainer postgresContainer() {
         return new PostgreSQLContainer<>(DockerImageName.parse("postgres:latest"))
-                .withInitScript("init-schema.sql");
+                .withInitScript("init.sql");
     }
 
 }
